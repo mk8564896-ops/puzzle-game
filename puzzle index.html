@@ -1,0 +1,500 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INSANE PUZZLE</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #182b4d, #070b16 65%);
+  color: white;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 25px 12px;
+}
+
+.game {
+  width: 100%;
+  max-width: 560px;
+  text-align: center;
+}
+
+h1 {
+  font-size: clamp(27px, 7vw, 42px);
+  letter-spacing: 4px;
+  color: #55f5ff;
+  text-shadow: 0 0 18px #00cfff;
+  margin: 12px 0;
+}
+
+.subtitle {
+  color: #9daecc;
+  margin-bottom: 22px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.stat {
+  background: #111c30;
+  border: 1px solid #263e60;
+  padding: 13px 4px;
+  border-radius: 12px;
+}
+
+.stat small {
+  color: #8ea8ca;
+  display: block;
+  font-size: 11px;
+  margin-bottom: 7px;
+}
+
+.stat strong {
+  color: #55f5ff;
+  font-size: 20px;
+}
+
+.settings {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+select, button {
+  border: 1px solid #304b70;
+  border-radius: 9px;
+  padding: 12px 9px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+select {
+  flex: 1;
+  min-width: 0;
+  background: #111c30;
+  color: white;
+}
+
+button {
+  cursor: pointer;
+  transition: .2s;
+}
+
+button:hover {
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+}
+
+.new-game {
+  background: #54f3ff;
+  color: #07111d;
+  border: none;
+}
+
+.board {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  background: #0c1424;
+  border: 1px solid #294669;
+  border-radius: 16px;
+  box-shadow: 0 0 30px #00cfff13;
+  touch-action: manipulation;
+}
+
+.tile {
+  aspect-ratio: 1;
+  min-width: 0;
+  border-radius: 9px;
+  background: linear-gradient(145deg, #1b4265, #10233e);
+  color: #e9fbff;
+  border: 1px solid #32658c;
+  font-size: clamp(12px, 3.5vw, 24px);
+  font-weight: bold;
+  padding: 0;
+  box-shadow: inset 0 0 10px #45d8ff0c;
+}
+
+.tile:hover {
+  background: #24577a;
+}
+
+.tile.empty {
+  background: #080e19;
+  border: 1px dashed #1c2d45;
+  box-shadow: none;
+  cursor: default;
+}
+
+.tile.correct {
+  border-color: #26e6a2;
+  color: #79ffd0;
+}
+
+.tile.hinted {
+  background: #6b4c12;
+  border-color: #ffd45b;
+  color: #fff0a6;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.controls button {
+  background: #16243b;
+  color: white;
+}
+
+.controls .hint {
+  color: #ffd45b;
+  border-color: #806a32;
+}
+
+.message {
+  min-height: 45px;
+  margin-top: 18px;
+  padding: 12px;
+  color: #b9cbe6;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.message.win {
+  color: #56ffba;
+  font-weight: bold;
+}
+
+.note {
+  font-size: 11px;
+  color: #647b9d;
+  margin: 10px 0 20px;
+}
+</style>
+</head>
+
+<body>
+<div class="game">
+
+  <h1>INSANE PUZZLE</h1>
+  <p class="subtitle">Can you beat the impossible?</p>
+
+  <div class="stats">
+    <div class="stat">
+      <small>MOVES</small>
+      <strong id="moves">0</strong>
+    </div>
+    <div class="stat">
+      <small>TIME</small>
+      <strong id="timer">00:00</strong>
+    </div>
+    <div class="stat">
+      <small>BEST</small>
+      <strong id="best">--</strong>
+    </div>
+  </div>
+
+  <div class="settings">
+    <select id="difficulty">
+      <option value="5">Hard · 5×5</option>
+      <option value="6">Expert · 6×6</option>
+      <option value="7" selected>INSANE · 7×7</option>
+    </select>
+    <button class="new-game" id="restart">NEW GAME</button>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="controls">
+    <button class="hint" id="hint">💡 GET A HINT</button>
+    <button id="giveup">↻ RESTART PUZZLE</button>
+  </div>
+
+  <div class="message" id="message">
+    Arrange every number in order. Empty space goes last!
+  </div>
+
+  <p class="note">
+    INSANE MODE • Think carefully • Every move counts
+  </p>
+</div>
+
+<script>
+const board = document.getElementById("board");
+const movesText = document.getElementById("moves");
+const timerText = document.getElementById("timer");
+const bestText = document.getElementById("best");
+const message = document.getElementById("message");
+const difficulty = document.getElementById("difficulty");
+
+let size = 7;
+let tiles = [];
+let moves = 0;
+let seconds = 0;
+let running = false;
+let started = false;
+let finished = false;
+let hintTile = -1;
+let clock = null;
+
+function bestKey() {
+  return "insane-puzzle-best-" + size;
+}
+
+function updateBest() {
+  const value = localStorage.getItem(bestKey());
+  bestText.textContent = value === null
+    ? "--"
+    : formatTime(Number(value));
+}
+
+function formatTime(value) {
+  const m = Math.floor(value / 60);
+  const s = value % 60;
+  return String(m).padStart(2, "0") + ":" +
+         String(s).padStart(2, "0");
+}
+
+function updateStats() {
+  movesText.textContent = moves;
+  timerText.textContent = formatTime(seconds);
+}
+
+function startClock() {
+  if (started) return;
+  started = true;
+  running = true;
+
+  clock = setInterval(() => {
+    if (!running || finished) return;
+    seconds++;
+    timerText.textContent = formatTime(seconds);
+  }, 1000);
+}
+
+function stopClock() {
+  running = false;
+  if (clock !== null) {
+    clearInterval(clock);
+    clock = null;
+  }
+}
+
+function solvedBoard() {
+  return Array.from(
+    { length: size * size },
+    (_, i) => (i + 1) % (size * size)
+  );
+}
+
+function neighbors(index) {
+  const row = Math.floor(index / size);
+  const col = index % size;
+  const result = [];
+
+  if (row > 0) result.push(index - size);
+  if (row < size - 1) result.push(index + size);
+  if (col > 0) result.push(index - 1);
+  if (col < size - 1) result.push(index + 1);
+
+  return result;
+}
+
+function shuffleBoard() {
+  tiles = solvedBoard();
+  let blank = tiles.length - 1;
+  let previous = -1;
+
+  // Random legal moves guarantee a solvable puzzle.
+  const shuffleMoves = size * size * 100;
+
+  for (let i = 0; i < shuffleMoves; i++) {
+    let choices = neighbors(blank)
+      .filter(index => index !== previous);
+
+    const next =
+      choices[Math.floor(Math.random() * choices.length)];
+
+    [tiles[blank], tiles[next]] =
+      [tiles[next], tiles[blank]];
+
+    previous = blank;
+    blank = next;
+  }
+
+  // Avoid starting on an already-solved board.
+  if (isSolved()) {
+    [tiles[0], tiles[1]] = [tiles[1], tiles[0]];
+  }
+}
+
+function isSolved() {
+  return tiles.every(
+    (value, index) => value === (index + 1) % tiles.length
+  );
+}
+
+function renderBoard() {
+  board.style.gridTemplateColumns =
+    `repeat(${size}, minmax(0, 1fr))`;
+
+  board.innerHTML = "";
+
+  tiles.forEach((value, index) => {
+    const tile = document.createElement("button");
+    tile.className = "tile";
+    tile.setAttribute("aria-label",
+      value === 0 ? "Empty space" : "Tile " + value);
+
+    if (value === 0) {
+      tile.classList.add("empty");
+      tile.disabled = true;
+    } else {
+      tile.textContent = value;
+
+      if (value === index + 1) {
+        tile.classList.add("correct");
+      }
+
+      if (index === hintTile) {
+        tile.classList.add("hinted");
+      }
+
+      tile.addEventListener("click", () => moveTile(index));
+    }
+
+    board.appendChild(tile);
+  });
+}
+
+function moveTile(index) {
+  if (finished) return;
+
+  const blank = tiles.indexOf(0);
+
+  if (!neighbors(blank).includes(index)) {
+    message.textContent = "❌ Invalid move! Move a tile next to the empty space.";
+    return;
+  }
+
+  startClock();
+
+  [tiles[blank], tiles[index]] =
+    [tiles[index], tiles[blank]];
+
+  moves++;
+  hintTile = -1;
+  updateStats();
+  renderBoard();
+
+  if (isSolved()) {
+    finished = true;
+    stopClock();
+
+    const oldBest = localStorage.getItem(bestKey());
+
+    if (oldBest === null || seconds < Number(oldBest)) {
+      localStorage.setItem(bestKey(), seconds);
+      updateBest();
+    }
+
+    message.className = "message win";
+    message.textContent =
+      `🏆 PUZZLE SOLVED! ${moves} moves · ${formatTime(seconds)}. Amazing work!`;
+  } else {
+    message.className = "message";
+    message.textContent = "Keep going! The puzzle is not solved yet.";
+  }
+}
+
+function getHint() {
+  if (finished) return;
+
+  const blank = tiles.indexOf(0);
+  const possible = neighbors(blank);
+
+  // Find a legal move that reduces total Manhattan distance.
+  let bestMove = -1;
+  let bestDistance = Infinity;
+
+  for (const index of possible) {
+    const value = tiles[index];
+    const target = value - 1;
+
+    const oldRow = Math.floor(index / size);
+    const oldCol = index % size;
+    const targetRow = Math.floor(target / size);
+    const targetCol = target % size;
+
+    const oldDistance =
+      Math.abs(oldRow - targetRow) +
+      Math.abs(oldCol - targetCol);
+
+    const newDistance =
+      Math.abs(Math.floor(blank / size) - targetRow) +
+      Math.abs((blank % size) - targetCol);
+
+    const totalDistance = newDistance - oldDistance;
+
+    if (totalDistance < bestDistance) {
+      bestDistance = totalDistance;
+      bestMove = index;
+    }
+  }
+
+  if (bestMove !== -1) {
+    hintTile = bestMove;
+    renderBoard();
+    message.textContent =
+      "💡 Try moving the highlighted tile. Hints do not make the move for you!";
+  }
+}
+
+function newGame() {
+  stopClock();
+
+  size = Number(difficulty.value);
+  moves = 0;
+  seconds = 0;
+  started = false;
+  running = false;
+  finished = false;
+  hintTile = -1;
+
+  shuffleBoard();
+  updateStats();
+  updateBest();
+  renderBoard();
+
+  message.className = "message";
+  message.textContent =
+    "Arrange the numbers in ascending order. This one is tough!";
+}
+
+document.getElementById("restart").addEventListener("click", newGame);
+document.getElementById("giveup").addEventListener("click", newGame);
+document.getElementById("hint").addEventListener("click", getHint);
+difficulty.addEventListener("change", newGame);
+
+newGame();
+</script>
+</body>
+</html>
